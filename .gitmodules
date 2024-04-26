@@ -1,0 +1,9 @@
+[submodule "json"]
+	path = json
+	url = https://github.com/nlohmann/json.git
+[submodule "wabt"]
+	path = wabt
+	url = https://github.com/fix-project/wabt.git
+[submodule "llvm-project"]
+	path = llvm-project
+	url = https://github.com/fix-project/llvm-project.git
