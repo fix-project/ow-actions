@@ -4,7 +4,8 @@
 
 inline void put_object( Aws::S3::S3Client* client, std::string bucket, std::string key, const std::string& content ) {
   const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::StringStream>( "" );
-  *inputData << content.c_str();
+
+  inputData->write(content.data(), content.size());
 
   Aws::S3::Model::PutObjectRequest request;
   request.SetBucket( bucket );
@@ -14,7 +15,8 @@ inline void put_object( Aws::S3::S3Client* client, std::string bucket, std::stri
   Aws::S3::Model::PutObjectOutcome outcome = client->PutObject(request);
 
   if (!outcome.IsSuccess()) {
-    printf("{ \"msg\": \"Error: PutObjectBuffer: %s\", \"error\": %s }", key.c_str(), outcome.GetError().GetMessage().c_str() );
+    fprintf(stderr, "Error: PutObjectBuffer: %s, %s", key.c_str(),
+            outcome.GetError().GetMessage().c_str());
     exit( -1 );
   }
 }
