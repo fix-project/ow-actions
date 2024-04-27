@@ -7,3 +7,9 @@ printf "@ wasm-to-c-minio\n@=exec\n" | zipnote -w wasm2c.zip
 
 zip link-elfs.zip ../docker-build/src/driver/link-elfs-minio -j 
 printf "@ link-elfs-minio\n@=exec\n" | zipnote -w link-elfs.zip
+
+zip count-words.zip ../docker-build/src/driver/count-words-minio -j 
+printf "@ count-words-minio\n@=exec\n" | zipnote -w count-words.zip
+
+zip merge-counts.zip ../docker-build/src/driver/merge-counts-minio -j 
+printf "@ merge-counts-minio\n@=exec\n" | zipnote -w merge-counts.zip

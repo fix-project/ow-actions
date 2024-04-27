@@ -3,7 +3,7 @@
 #include "aws/s3/model/PutObjectRequest.h"
 
 static void put_object(Aws::S3::S3Client *client, std::string bucket,
-                       std::string key, const std::string &content) {
+                       std::string key, std::string_view content) {
   const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::StringStream>( "" );
 
   inputData->write(content.data(), content.size());
@@ -59,7 +59,7 @@ static void put_object_async_finished(
 static void put_object_async(std::atomic<size_t> *counter,
                              const Aws::S3::S3Client &s3Client,
                              std::string bucket, std::string key,
-                             const std::string &content) {
+                             std::string_view content) {
   const std::shared_ptr<Aws::IOStream> inputData =
       Aws::MakeShared<Aws::StringStream>("");
 
