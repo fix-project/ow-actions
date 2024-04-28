@@ -12,12 +12,9 @@
 using namespace std;
 using json = nlohmann::json;
 
-pair<char *, size_t> merge_counts(size_t, char *, size_t, char *);
+async_context s3_context;
 
-string get_input(Aws::S3::S3Client *client, string input_bucket,
-                 string file_name) {
-  return get_object(client, input_bucket, file_name);
-}
+pair<char *, size_t> merge_counts(size_t, char *, size_t, char *);
 
 void do_merge_counts(string input_bucket, string fnX, string fnY,
                      string output_bucket, string output_file) {
@@ -34,8 +31,14 @@ void do_merge_counts(string input_bucket, string fnX, string fnY,
       credential, config,
       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
 
-  auto fX = get_input(&client, input_bucket, fnX);
-  auto fY = get_input(&client, input_bucket, fnY);
+  string fX;
+  string fY;
+
+  get_object_async(&s3_context, &fX, &client, input_bucket, fnX);
+  get_object_async(&s3_context, &fY, &client, input_bucket, fnY);
+
+  unique_lock lk(s3_context.mutex);
+  s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
 
   printf("fnX: %s, fX.size: %zu\n", fnX.c_str(), fX.size());
   printf("fnY: %s, fY.size: %zu\n", fnY.c_str(), fY.size());

@@ -2,6 +2,15 @@
 #include "aws/s3/model/GetObjectRequest.h"
 #include "aws/s3/model/PutObjectRequest.h"
 
+#include <condition_variable>
+#include <mutex>
+
+struct async_context {
+  std::size_t remaining_jobs{};
+  std::mutex mutex{};
+  std::condition_variable cv{};
+};
+
 static void put_object(Aws::S3::S3Client *client, std::string bucket,
                        std::string key, std::string_view content) {
   const std::shared_ptr<Aws::IOStream> inputData = Aws::MakeShared<Aws::StringStream>( "" );
@@ -42,7 +51,7 @@ static std::string get_object(Aws::S3::S3Client *client, std::string bucket,
 }
 
 static void put_object_async_finished(
-    std::atomic<size_t> *counter, const Aws::S3::S3Client *s3Client,
+    async_context *async, const Aws::S3::S3Client *s3Client,
     const Aws::S3::Model::PutObjectRequest &request,
     const Aws::S3::Model::PutObjectOutcome &outcome,
     const std::shared_ptr<const Aws::Client::AsyncCallerContext> &context) {
@@ -52,12 +61,16 @@ static void put_object_async_finished(
     exit(-1);
   }
 
-  *counter--;
-  counter->notify_all();
+  {
+    std::unique_lock lock(async->mutex);
+    async->remaining_jobs--;
+    if (async->remaining_jobs == 0) {
+      async->cv.notify_all();
+    }
+  }
 }
 
-static void put_object_async(std::atomic<size_t> *counter,
-                             const Aws::S3::S3Client &s3Client,
+static void put_object_async(async_context *async, Aws::S3::S3Client *s3Client,
                              std::string bucket, std::string key,
                              std::string_view content) {
   const std::shared_ptr<Aws::IOStream> inputData =
@@ -73,19 +86,21 @@ static void put_object_async(std::atomic<size_t> *counter,
   std::shared_ptr<Aws::Client::AsyncCallerContext> context =
       Aws::MakeShared<Aws::Client::AsyncCallerContext>(key.c_str());
 
-  *counter++;
+  {
+    std::unique_lock lock(async->mutex);
+    async->remaining_jobs++;
+  }
 
-  s3Client.PutObjectAsync(
+  s3Client->PutObjectAsync(
       request,
-      std::bind(put_object_async_finished, counter, std::placeholders::_1,
+      std::bind(put_object_async_finished, async, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3,
                 std::placeholders::_4),
       context);
 }
 
 static void get_object_async_finished(
-    std::atomic<size_t> *counter, std::string *dst,
-    const Aws::S3::S3Client *s3Client,
+    async_context *async, std::string *dst, const Aws::S3::S3Client *s3Client,
     const Aws::S3::Model::GetObjectRequest &request,
     const Aws::S3::Model::GetObjectOutcome outcome,
     const std::shared_ptr<const Aws::Client::AsyncCallerContext> &context) {
@@ -100,11 +115,16 @@ static void get_object_async_finished(
   ss << content.rdbuf();
   *dst = ss.str();
 
-  *counter--;
-  counter->notify_all();
+  {
+    std::unique_lock lock(async->mutex);
+    async->remaining_jobs--;
+    if (async->remaining_jobs == 0) {
+      async->cv.notify_all();
+    }
+  }
 }
 
-static void get_object_async(std::atomic<size_t> *counter, std::string *dst,
+static void get_object_async(async_context *async, std::string *dst,
                              Aws::S3::S3Client *client, std::string bucket,
                              std::string key) {
   Aws::S3::Model::GetObjectRequest request;
@@ -114,10 +134,13 @@ static void get_object_async(std::atomic<size_t> *counter, std::string *dst,
   std::shared_ptr<Aws::Client::AsyncCallerContext> context =
       Aws::MakeShared<Aws::Client::AsyncCallerContext>(key.c_str());
 
-  *counter++;
+  {
+    std::unique_lock lock(async->mutex);
+    async->remaining_jobs++;
+  }
 
   client->GetObjectAsync(request,
-                         std::bind(get_object_async_finished, counter, dst,
+                         std::bind(get_object_async_finished, async, dst,
                                    std::placeholders::_1, std::placeholders::_2,
                                    std::placeholders::_3,
                                    std::placeholders::_4),

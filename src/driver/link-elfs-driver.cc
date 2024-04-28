@@ -10,6 +10,8 @@
 using namespace std;
 using json = nlohmann::json;
 
+async_context s3_context;
+
 void do_link( string bucket, size_t last_index, string output_name ) {
   // Credential: minioadmin, minioadmin
   const char* key = "minioadmin";
@@ -30,8 +32,14 @@ void do_link( string bucket, size_t last_index, string output_name ) {
   dep_file_sizes.resize(last_index + 1);
 
   for (size_t i = 0; i <= last_index; i++) {
-    dep_files[i] =
-        get_object(&client, bucket, "function" + to_string(i) + ".o");
+    get_object_async(&s3_context, &dep_files[i], &client, bucket,
+                     "function" + to_string(i) + ".o");
+  }
+
+  unique_lock lk(s3_context.mutex);
+  s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
+
+  for (size_t i = 0; i <= last_index; i++) {
     dep_file_ptrs[i] = dep_files[i].data();
     dep_file_sizes[i] = dep_files[i].size();
     printf("function%ld.o size:%ld\n", i, dep_file_sizes[i]);

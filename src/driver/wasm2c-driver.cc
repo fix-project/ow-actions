@@ -8,6 +8,7 @@
 #include "wasm-to-c.hh"
 #include "s3.hh"
 
+#include <atomic>
 #include <functional>
 #include <string>
 
@@ -15,13 +16,16 @@ using namespace std;
 using json = nlohmann::json;
 
 size_t generated_files = 0;
+async_context s3_context;
+
 void write_c_output( Aws::S3::S3Client* client, string output_bucket, size_t index, string content )
 {
   if ( content.rfind( "/* Empty wasm2c", 0 ) == 0 ) {
     return;
   }
 
-  put_object( client, output_bucket, "function" + to_string( generated_files ) + ".c", content );
+  put_object_async(&s3_context, client, output_bucket,
+                   "function" + to_string(generated_files) + ".c", content);
   generated_files++;
 }
 
@@ -54,8 +58,12 @@ void do_wasm_to_c( string input_bucket, string file_name, string output_bucket )
     exit( -1 );
   }
 
-  put_object( &client, output_bucket, "function-impl.h", h_impl_header );
-  put_object( &client, output_bucket, "function.h", h_header );
+  put_object_async(&s3_context, &client, output_bucket, "function-impl.h",
+                   h_impl_header);
+  put_object_async(&s3_context, &client, output_bucket, "function.h", h_header);
+
+  unique_lock lk(s3_context.mutex);
+  s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
 
   printf("{ \"output_number\": %zu }", generated_files );
 }
