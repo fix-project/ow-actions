@@ -1,6 +1,6 @@
 dockers/ctoelf-action/c-to-elf-minio
 dockers/ctoelf-action/clang-include/
 dockers/ctoelf-action/usr/
-actions/
+actions/*.zip
 docker-build/
 
