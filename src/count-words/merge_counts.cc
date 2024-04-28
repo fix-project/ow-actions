@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstdlib>
 #include <stdlib.h>
 #include <string.h>
 #include <utility>
@@ -53,8 +54,8 @@ std::pair<char *, size_t> merge_counts(size_t sX, char *fX, size_t sY,
     NY++;
   } while ((p = strtok(NULL, ",")));
 
-  size_t *valsX = (size_t *)malloc(sizeof(size_t) * NX);
-  size_t *valsY = (size_t *)malloc(sizeof(size_t) * NY);
+  size_t *valsX = (size_t *)aligned_alloc(alignof(size_t), sizeof(size_t) * NX);
+  size_t *valsY = (size_t *)aligned_alloc(alignof(size_t), sizeof(size_t) * NY);
 
   for (size_t i = 0; i < NX; i++) {
     char *s = valsXstr[i];
@@ -65,7 +66,7 @@ std::pair<char *, size_t> merge_counts(size_t sX, char *fX, size_t sY,
     }
     valsX[i] = x;
   }
-  for (size_t i = 0; i < NX; i++) {
+  for (size_t i = 0; i < NY; i++) {
     char *s = valsYstr[i];
     uint32_t x = 0;
     for (size_t j = 0; j < 8; j++) {
@@ -77,7 +78,7 @@ std::pair<char *, size_t> merge_counts(size_t sX, char *fX, size_t sY,
 
   size_t N = NX + NY;
   char **keys = (char **)malloc(sizeof(char *) * N);
-  size_t *vals = (size_t *)malloc(sizeof(size_t) * N);
+  size_t *vals = (size_t *)aligned_alloc(alignof(size_t), sizeof(size_t) * N);
   size_t i = 0;
   size_t ix = 0;
   size_t iy = 0;
