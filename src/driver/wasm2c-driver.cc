@@ -42,7 +42,7 @@ void do_wasm_to_c( string input_bucket, string file_name, string output_bucket )
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "172.31.8.132:9000";
+  config.endpointOverride = "10.99.179.249:9000";
   config.verifySSL = false;
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
