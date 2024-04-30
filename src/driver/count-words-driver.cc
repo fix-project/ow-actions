@@ -27,7 +27,7 @@ void do_count_words(string input_bucket, string file_name, string output_bucket,
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.99.179.249:9000";
+  config.endpointOverride = "10.105.249.111:80";
   config.verifySSL = false;
 
   Aws::S3::S3Client client(

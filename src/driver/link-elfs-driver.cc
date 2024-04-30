@@ -19,10 +19,14 @@ void do_link( string bucket, size_t last_index, string output_name ) {
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.99.179.249:9000";
+  config.endpointOverride = "10.105.249.111:80";
   config.verifySSL = false;
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
+
+  struct timespec now;
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec );
 
   vector<string> dep_files;
   dep_files.resize(last_index + 1);
@@ -42,10 +46,15 @@ void do_link( string bucket, size_t last_index, string output_name ) {
   for (size_t i = 0; i <= last_index; i++) {
     dep_file_ptrs[i] = dep_files[i].data();
     dep_file_sizes[i] = dep_files[i].size();
-    printf("function%ld.o size:%ld\n", i, dep_file_sizes[i]);
   }
 
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec );
+
   auto [success, res] = link_elfs( dep_file_ptrs, dep_file_sizes );
+
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec );
 
   if ( not success ) {
     fprintf(stderr, "Error: link elfs error: %s }", res.c_str());
@@ -53,6 +62,10 @@ void do_link( string bucket, size_t last_index, string output_name ) {
   }
 
   put_object(&client, bucket, output_name, res);
+
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec );
+
   printf("{ \"msg\": \"Linked ELF of size %ld\" }", res.size());
 }
 
@@ -62,8 +75,6 @@ int main( int argc, char* argv[] )
   auto bucket = args["bucket"].get<string>();
   auto last_index = args["last_index"].get<size_t>();
   auto output_name = args["output_name"].get<string>();
-  printf("bucket: %s, last_index: %ld, output_name: %s\n", bucket.c_str(),
-         last_index, output_name.c_str());
 
   Aws::SDKOptions options;
   Aws::InitAPI( options );

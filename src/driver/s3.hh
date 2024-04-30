@@ -106,7 +106,10 @@ static void get_object_async_finished(
     const std::shared_ptr<const Aws::Client::AsyncCallerContext> &context) {
   if (!outcome.IsSuccess()) {
     std::cerr << "Error: GetObjectAsyncFinished: "
-              << outcome.GetError().GetMessage() << std::endl;
+              << outcome.GetError().GetMessage() 
+              << " " << request.GetBucket()
+              << " " << request.GetKey()
+              << std::endl;
     exit(-1);
   }
 

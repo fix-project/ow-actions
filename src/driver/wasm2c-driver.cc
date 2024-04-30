@@ -42,16 +42,27 @@ void do_wasm_to_c( string input_bucket, string file_name, string output_bucket )
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.99.179.249:9000";
+  config.endpointOverride = "10.105.249.111:80";
   config.verifySSL = false;
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
 
+  struct timespec now;
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec );
+
   auto wasm_content = get_wasm_input( &client, input_bucket, file_name );
+
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec );
+
   auto stream_finish_callback = bind( write_c_output, &client, output_bucket, placeholders::_1, placeholders::_2 );
 
   auto [h_header, h_impl_header, errors]
     = wasm_to_c( wasm_content.data(), wasm_content.length(), stream_finish_callback );
+
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec );
 
   if ( errors ) {
     printf("{ \"msg\": \"Error: wasm2c\", \"error\": %s }", errors->c_str()  );
@@ -64,6 +75,9 @@ void do_wasm_to_c( string input_bucket, string file_name, string output_bucket )
 
   unique_lock lk(s3_context.mutex);
   s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
+
+  clock_gettime( CLOCK_REALTIME, &now );
+  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec );
 
   printf("{ \"output_number\": %zu }", generated_files );
 }
