@@ -34,23 +34,30 @@ void do_merge_counts(string input_bucket, string fnX, string fnY,
   string fX;
   string fY;
 
+  struct timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
+
   get_object_async(&s3_context, &fX, &client, input_bucket, fnX);
   get_object_async(&s3_context, &fY, &client, input_bucket, fnY);
 
   unique_lock lk(s3_context.mutex);
   s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
 
-  printf("fnX: %s, fX.size: %zu\n", fnX.c_str(), fX.size());
-  printf("fnY: %s, fY.size: %zu\n", fnY.c_str(), fY.size());
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
 
   auto [out, out_size] =
       merge_counts(fX.size(), fX.data(), fY.size(), fY.data());
 
-  printf("output_size: %zu\n", out_size);
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
 
   put_object(&client, output_bucket, output_file, {out, out_size});
   free(out);
 
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
   printf("{ \"output_size\": %zu }", out_size);
 }
 

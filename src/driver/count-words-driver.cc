@@ -34,14 +34,26 @@ void do_count_words(string input_bucket, string file_name, string output_bucket,
       credential, config,
       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
 
+  struct timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
+
   auto input_content = get_input(&client, input_bucket, file_name);
+
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
 
   auto [out, out_size] =
       count_words(input_content.size(), input_content.data());
 
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
+
   put_object(&client, output_bucket, output_file, {out, out_size});
   free(out);
 
+  clock_gettime(CLOCK_REALTIME, &now);
+  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
   printf("{ \"output_size\": %zu }", out_size);
 }
 
