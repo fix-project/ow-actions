@@ -5,7 +5,7 @@
 #include <tuple>
 #include <utility>
 
-#define NUM_OUTPUT 256
+#define NUM_OUTPUT 2048
 
 std::tuple<std::string, std::string, std::optional<std::string>> wasm_to_c(
   const void* wasm_source,

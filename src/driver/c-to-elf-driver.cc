@@ -28,28 +28,33 @@ void do_clang( string bucket, size_t index ) {
   clock_gettime( CLOCK_REALTIME, &now );
   printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec );
 
+  auto c_content = get_object(&client, bucket, "function" + to_string( index ) + ".c" );
   auto h_impl_content = get_object(&client, bucket, "function-impl.h");
   auto h_content = get_object(&client, bucket, "function.h");
-  auto c_content = get_object(&client, bucket, "function" + to_string( index ) + ".c" );
 
-  std::vector<NullTerminatedReadOnlyFile> system_dep_files;
-  std::vector<char*> system_dep_content;
+  vector<string> system_dep_content;
   for ( auto system_dep_path : system_deps ) {
-    system_dep_files.push_back( NullTerminatedReadOnlyFile( &system_dep_path[1] ) );
-    system_dep_content.push_back( system_dep_files.back().addr() );
+    system_dep_content.push_back( get_object( &client, "system-deps", string( &system_dep_path[1] ) ) );
   }
-  std::vector<NullTerminatedReadOnlyFile> clang_dep_files;
-  std::vector<char*> clang_dep_content;
+  vector<string> clang_dep_content;
   for ( auto clang_dep_path : clang_deps ) {
-    clang_dep_files.push_back( NullTerminatedReadOnlyFile( &clang_dep_path[1] ) );
-    clang_dep_content.push_back( clang_dep_files.back().addr() );
+    clang_dep_content.push_back( get_object( &client, "clang-deps", string( &clang_dep_path[1] ) ) );
+  }
+
+  vector<char*> system_dep_ptrs;
+  for ( size_t i = 0; i < system_dep_content.size(); i++ ) {
+    system_dep_ptrs.push_back( system_dep_content[i].data() );
+  }
+  vector<char*> clang_dep_ptrs;
+  for ( size_t i = 0; i < clang_dep_content.size(); i++ ) {
+    clang_dep_ptrs.push_back( clang_dep_content[i].data() );
   }
 
   clock_gettime( CLOCK_REALTIME, &now );
   printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec );
 
   pair<bool, string> elf_res
-    = c_to_elf( system_dep_content, clang_dep_content, c_content.data(), h_impl_content.data(), h_content.data() );
+    = c_to_elf( system_dep_ptrs, clang_dep_ptrs, c_content.data(), h_impl_content.data(), h_content.data() );
 
   clock_gettime( CLOCK_REALTIME, &now );
   printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec );
