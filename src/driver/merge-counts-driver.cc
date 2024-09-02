@@ -47,18 +47,22 @@ void do_merge_counts(string input_bucket, string fnX, string fnY,
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
 
-  auto [out, out_size] =
-      merge_counts(fX.size(), fX.data(), fY.size(), fY.data());
+  uint64_t *fX64 = (uint64_t *)(fX.data());
+  uint64_t *fY64 = (uint64_t *)(fY.data());
+
+  uint64_t f[256];
+  for (int i = 0; i < 256; i++) {
+    f[i] = fX64[i] + fY64[i];
+  }
 
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
 
-  put_object(&client, output_bucket, output_file, {out, out_size});
-  free(out);
+  put_object(&client, output_bucket, output_file, {(char *)(&f), sizeof(f)});
 
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
-  printf("{ \"output_size\": %zu }", out_size);
+  printf("{ \"output_size\": %zu }", sizeof(f));
 }
 
 int main(int argc, char *argv[]) {
@@ -68,8 +72,6 @@ int main(int argc, char *argv[]) {
   auto input_file_y = args["input_file_y"].get<string>();
   auto output_bucket = args["output_bucket"].get<string>();
   auto output_file = args["output_file"].get<string>();
-
-  printf("input_bucket: %s, input_file_x: %s, input_file_y: %s, output_bucket: %s, output_file: %s\n", input_bucket.c_str(), input_file_x.c_str(), input_file_y.c_str(), output_bucket.c_str(), output_file.c_str());
 
   Aws::SDKOptions options;
   Aws::InitAPI(options);

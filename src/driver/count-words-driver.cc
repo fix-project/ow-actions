@@ -43,18 +43,23 @@ void do_count_words(string input_bucket, string file_name, string output_bucket,
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
 
-  auto [out, out_size] =
-      count_words(input_content.size(), input_content.data());
+  uint64_t counts[256];
+  memset(counts, 0, sizeof(counts));
+
+  for (size_t i = 0; i < input_content.size(); i++) {
+    counts[input_content[i]]++;
+  }
 
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
 
-  put_object(&client, output_bucket, output_file, {out, out_size});
-  free(out);
+  put_object(&client, output_bucket, output_file,
+             {(char *)(&counts), sizeof(counts)});
 
   clock_gettime(CLOCK_REALTIME, &now);
   printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
-  printf("{ \"output_size\": %zu }", out_size);
+
+  printf("{ \"output_size\": %zu }", sizeof(counts));
 }
 
 int main(int argc, char *argv[]) {
