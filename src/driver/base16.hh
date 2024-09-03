@@ -28,8 +28,9 @@ __attribute__( ( unused ) ) static std::string encode( std::string name )
   ret.reserve( 64 );
 
   for ( size_t i = 0; i < 32; i++ ) {
-    ret.push_back( base16_chars[name[i] >> 4] );
-    ret.push_back( base16_chars[name[i] & 0xf] );
+    unsigned char c = name[i] & 0xff;
+    ret.push_back( base16_chars[c >> 4] );
+    ret.push_back( base16_chars[c & 0xf] );
   }
 
   return ret;

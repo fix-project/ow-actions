@@ -8,25 +8,29 @@
 #include "s3.hh"
 
 #include <string>
+#include <bitset>
 
 using namespace std;
 using json = nlohmann::json;
 
 string get_fix_object( Aws::S3::S3Client* client, string input_bucket, string handle ) {
   auto raw = base16::decode( handle );
-  if ( ( raw[30] | 0b11111000 ) == 0b11111000 ) {
-    size_t size = raw[30] >> 3;
-    return string( reinterpret_cast<const char*>( &raw ), size );
+  if ( ( ((unsigned char)raw[30]) | 0b11111000 ) == 0b11111000 ) {
+    size_t size = ((unsigned char)raw[30]) >> 3;
+    auto result = string( reinterpret_cast<const char*>( &raw ), size );
+    std::memcpy( result.data(), &raw[0], size );
+    return result;
   }
 
   return get_object( client, input_bucket, handle.substr( 0, 48 ) );
 }
 
 string get_entry( string data, size_t i ) {
-  return base16::encode( data.substr( i * 32, (i + 1) *32 ) );
+  string result = base16::encode( data.substr( i * 32, 32 ) );
+  return result;
 }
 
-int upper_bound( int* keys, uint64_t size, int key )
+int upper_bound( int32_t* keys, uint64_t size, int key )
 {
   for ( int i = 0; i < size; i++ ) {
     if ( keys[i] > key ) {
@@ -58,7 +62,9 @@ void do_bptree_get(string input_bucket, string tree_root, string minio_url, int 
     auto data = get_fix_object( &client, input_bucket, curr_level );
     auto keys = get_fix_object( &client, input_bucket, get_entry( data, 0 ) );
     bool isleaf = ( keys[0] == 1 );
-    int* real_keys = reinterpret_cast<int*>( keys[1] );
+    int32_t* real_keys = reinterpret_cast<int32_t*>( &keys[1] );
+
+
     auto idx = upper_bound( real_keys, keys.size() / sizeof( int ), key );
 
     if ( isleaf ) {
