@@ -12,14 +12,14 @@
 using namespace std;
 using json = nlohmann::json;
 
-void do_clang( string bucket, size_t index ) {
+void do_clang(string bucket, size_t index, string minio_url) {
   // Credential: minioadmin, minioadmin
   const char* key = "minioadmin";
   Aws::Auth::AWSCredentials credential( key, key );
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.105.249.111:80";
+  config.endpointOverride = minio_url;
   config.verifySSL = false;
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
@@ -78,11 +78,12 @@ int main( int argc, char* argv[] )
   auto args = json::parse(argv[1]);
   auto bucket = args["bucket"].get<string>();
   auto index = args["index"].get<size_t>();
+  auto minio_url = args["minio_url"].get<string>();
 
   printf("Input bucket %s, index %ld\n", bucket.c_str(), index);
 
   Aws::SDKOptions options;
   Aws::InitAPI(options);
-  { do_clang(bucket, index); }
+  { do_clang(bucket, index, minio_url); }
   Aws::ShutdownAPI(options);
 }

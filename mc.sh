@@ -5,7 +5,8 @@ SRC=${SRC}/build/llvm-project/llvm/lib/clang/19/include
 echo ${SRC}
 
 echo "mc mb myminio/system-deps"
-echo "mc mb myminio/clang-deps"
+mc mb myminio/system-deps
+mc mb myminio/clang-deps
 
 list=(`cat src/clang/depfile.hh | grep -Eo "\"(.)+\"," | awk '{print substr($0, 2, length($0)-3)}'`)
 echo ${list[1]}
@@ -16,9 +17,11 @@ do
   if [[ $file == "$prefix"* ]]
   then
     echo "mc put ${file} myminio/system-deps${file}"
+    mc put ${file} myminio/system-deps${file}
     
   else
     basename=`basename $file`
     echo "mc put ${SRC}/$basename myminio/clang-deps${file}"
+    mc put ${SRC}/$basename myminio/clang-deps${file}
   fi
 done

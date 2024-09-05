@@ -12,7 +12,8 @@ using json = nlohmann::json;
 
 async_context s3_context;
 
-void do_link( string bucket, size_t last_index, string output_name ) {
+void do_link(string bucket, size_t last_index, string output_name,
+             string minio_url) {
   // Credential: minioadmin, minioadmin
   const char* key = "minioadmin";
   Aws::Auth::AWSCredentials credential( key, key );
@@ -75,12 +76,11 @@ int main( int argc, char* argv[] )
   auto bucket = args["bucket"].get<string>();
   auto last_index = args["last_index"].get<size_t>();
   auto output_name = args["output_name"].get<string>();
+  auto minio_url = args["minio_url"].get<string>();
 
   Aws::SDKOptions options;
   Aws::InitAPI( options );
-  {
-    do_link( bucket, last_index, output_name );
-  }
+  { do_link(bucket, last_index, output_name, minio_url); }
   Aws::ShutdownAPI( options );
   return 0;
 }
