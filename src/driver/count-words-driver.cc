@@ -6,7 +6,6 @@
 
 #include "s3.hh"
 
-#include <functional>
 #include <string>
 
 using namespace std;
@@ -19,59 +18,50 @@ string get_input(Aws::S3::S3Client *client, string input_bucket,
   return get_object(client, input_bucket, file_name);
 }
 
-void do_count_words(string input_bucket, string file_name, string output_bucket,
-                    string output_file) {
+void do_count_words(string input_bucket, string file_name, string minio_url,
+                    string query) {
   // Credential: minioadmin, minioadmin
   const char *key = "minioadmin";
   Aws::Auth::AWSCredentials credential(key, key);
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.105.249.111:80";
+  config.endpointOverride = minio_url;
   config.verifySSL = false;
 
   Aws::S3::S3Client client(
       credential, config,
       Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false);
 
-  struct timespec now;
-  clock_gettime(CLOCK_REALTIME, &now);
-  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
-
   auto input_content = get_input(&client, input_bucket, file_name);
+  size_t haystack_size = input_content.size();
+  char* haystack = input_content.data();
 
-  clock_gettime(CLOCK_REALTIME, &now);
-  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
+  size_t needle_size = query.size();
+  char* needle = query.data();
 
-  uint64_t counts[256];
-  memset(counts, 0, sizeof(counts));
-
-  for (size_t i = 0; i < input_content.size(); i++) {
-    counts[input_content[i]]++;
+  size_t count = 0;
+  if (needle_size <= haystack_size) {
+    for (size_t i = 0; i < haystack_size - needle_size + 1; i++) {
+      if (!memcmp(needle, haystack + i, needle_size)) {
+        count++;
+      }
+    }
   }
 
-  clock_gettime(CLOCK_REALTIME, &now);
-  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
-
-  put_object(&client, output_bucket, output_file,
-             {(char *)(&counts), sizeof(counts)});
-
-  clock_gettime(CLOCK_REALTIME, &now);
-  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
-
-  printf("{ \"output_size\": %zu }", sizeof(counts));
+  printf("{ \"count\": %zu }", count);
 }
 
 int main(int argc, char *argv[]) {
   auto args = json::parse(argv[1]);
   auto input_bucket = args["input_bucket"].get<string>();
   auto input_file = args["input_file"].get<string>();
-  auto output_bucket = args["output_bucket"].get<string>();
-  auto output_file = args["output_file"].get<string>();
+  auto minio_url = args["minio_url"].get<string>();
+  auto needle = args["query"].get<string>();
 
   Aws::SDKOptions options;
   Aws::InitAPI(options);
-  { do_count_words(input_bucket, input_file, output_bucket, output_file); }
+  { do_count_words(input_bucket, input_file, minio_url, needle); }
   Aws::ShutdownAPI(options);
   return 0;
 }
