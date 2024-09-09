@@ -8,7 +8,7 @@ echo "mc mb myminio/system-deps"
 mc mb myminio/system-deps
 mc mb myminio/clang-deps
 
-list=(`cat src/clang/depfile.hh | grep -Eo "\"(.)+\"," | awk '{print substr($0, 2, length($0)-3)}'`)
+list=(`cat src/clang/depfile.hh | grep -Eo "\"(.)+\"" | awk '{print substr($0, 2, length($0)-2)}'`)
 echo ${list[1]}
 
 prefix=/usr/include

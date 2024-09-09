@@ -35,16 +35,17 @@ void do_count_words(string input_bucket, string file_name, string minio_url,
 
   auto input_content = get_input(&client, input_bucket, file_name);
   size_t haystack_size = input_content.size();
-  char* haystack = input_content.data();
+  char *haystack = input_content.data();
 
   size_t needle_size = query.size();
-  char* needle = query.data();
+  char *needle = query.data();
 
   size_t count = 0;
   if (needle_size <= haystack_size) {
     for (size_t i = 0; i < haystack_size - needle_size + 1; i++) {
       if (!memcmp(needle, haystack + i, needle_size)) {
         count++;
+        i += needle_size - 1;
       }
     }
   }

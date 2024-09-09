@@ -10,6 +10,6 @@ int main(int argc, char *argv[]) {
   auto input_x = args["input_x"]["count"].get<size_t>();
   auto input_y = args["input_y"]["count"].get<size_t>();
 
-  printf("{ \"count\": %zu }", input_x + input_y );
+  printf("{ \"count\": %zu }", input_x + input_y);
   return 0;
 }

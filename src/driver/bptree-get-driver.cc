@@ -80,7 +80,7 @@ void do_bptree_get(string input_bucket, string tree_root, string minio_url, int 
   }
 
   put_object(&client, output_bucket, output_file, result );
-  printf( "{ \"msg\": Done }" );
+  printf( "{ \"result\": \"%s\" }", result.c_str() );
 }
 
 int main(int argc, char *argv[]) {
