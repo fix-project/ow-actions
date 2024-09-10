@@ -30,3 +30,8 @@ add_executable(bptree-get-minio "bptree-get-driver.cc")
 target_link_libraries(bptree-get-minio ${CURL_LIBRARIES})
 target_link_libraries(bptree-get-minio ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(bptree-get-minio -static-libgcc -static-libstdc++)
+
+add_executable(bptree-get-n-minio "bptree-get-n-driver.cc")
+target_link_libraries(bptree-get-n-minio ${CURL_LIBRARIES})
+target_link_libraries(bptree-get-n-minio ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(bptree-get-n-minio -static-libgcc -static-libstdc++)
