@@ -19,7 +19,13 @@ string get_input(Aws::S3::S3Client *client, string input_bucket,
 }
 
 void do_count_words(string input_bucket, string file_name, string minio_url,
-                    string query) {
+                    string query, bool logging) {
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
+  }
+
   // Credential: minioadmin, minioadmin
   const char *key = "minioadmin";
   Aws::Auth::AWSCredentials credential(key, key);
@@ -40,6 +46,12 @@ void do_count_words(string input_bucket, string file_name, string minio_url,
   size_t needle_size = query.size();
   char *needle = query.data();
 
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
+  }
+
   size_t count = 0;
   if (needle_size <= haystack_size) {
     for (size_t i = 0; i < haystack_size - needle_size + 1; i++) {
@@ -48,6 +60,12 @@ void do_count_words(string input_bucket, string file_name, string minio_url,
         i += needle_size - 1;
       }
     }
+  }
+
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
   }
 
   printf("{ \"count\": %zu }", count);
@@ -59,10 +77,11 @@ int main(int argc, char *argv[]) {
   auto input_file = args["input_file"].get<string>();
   auto minio_url = args["minio_url"].get<string>();
   auto needle = args["query"].get<string>();
+  auto logging = args.value("logging", false);
 
   Aws::SDKOptions options;
   Aws::InitAPI(options);
-  { do_count_words(input_bucket, input_file, minio_url, needle); }
+  { do_count_words(input_bucket, input_file, minio_url, needle, logging); }
   Aws::ShutdownAPI(options);
   return 0;
 }

@@ -13,21 +13,23 @@ using json = nlohmann::json;
 async_context s3_context;
 
 void do_link(string bucket, size_t last_index, string output_name,
-             string minio_url) {
+             string minio_url, bool logging) {
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
+  }
+
   // Credential: minioadmin, minioadmin
   const char* key = "minioadmin";
   Aws::Auth::AWSCredentials credential( key, key );
 
   Aws::Client::ClientConfiguration config;
   config.scheme = Aws::Http::Scheme::HTTP;
-  config.endpointOverride = "10.105.249.111:80";
+  config.endpointOverride = minio_url;
   config.verifySSL = false;
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
-
-  struct timespec now;
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec );
 
   vector<string> dep_files;
   dep_files.resize(last_index + 1);
@@ -49,13 +51,19 @@ void do_link(string bucket, size_t last_index, string output_name,
     dep_file_sizes[i] = dep_files[i].size();
   }
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
+  }
 
   auto [success, res] = link_elfs( dep_file_ptrs, dep_file_sizes );
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
+  }
 
   if ( not success ) {
     fprintf(stderr, "Error: link elfs error: %s }", res.c_str());
@@ -64,8 +72,11 @@ void do_link(string bucket, size_t last_index, string output_name,
 
   put_object(&client, bucket, output_name, res);
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
+  }
 
   printf("{ \"msg\": \"Linked ELF of size %ld\" }", res.size());
 }
@@ -77,10 +88,11 @@ int main( int argc, char* argv[] )
   auto last_index = args["last_index"].get<size_t>();
   auto output_name = args["output_name"].get<string>();
   auto minio_url = args["minio_url"].get<string>();
+  auto logging = args.value("logging", false);
 
   Aws::SDKOptions options;
   Aws::InitAPI( options );
-  { do_link(bucket, last_index, output_name, minio_url); }
+  { do_link(bucket, last_index, output_name, minio_url, logging); }
   Aws::ShutdownAPI( options );
   return 0;
 }

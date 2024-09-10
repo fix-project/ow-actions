@@ -8,7 +8,6 @@
 #include "wasm-to-c.hh"
 #include "s3.hh"
 
-#include <atomic>
 #include <functional>
 #include <string>
 
@@ -35,7 +34,13 @@ string get_wasm_input( Aws::S3::S3Client* client, string input_bucket, string fi
 }
 
 void do_wasm_to_c(string input_bucket, string file_name, string output_bucket,
-                  string minio_url) {
+                  string minio_url, bool logging) {
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec);
+  }
+
   // Credential: minioadmin, minioadmin
   const char* key = "minioadmin";
   Aws::Auth::AWSCredentials credential( key, key );
@@ -47,22 +52,24 @@ void do_wasm_to_c(string input_bucket, string file_name, string output_bucket,
 
   Aws::S3::S3Client client( credential, config, Aws::Client::AWSAuthV4Signer::PayloadSigningPolicy::Never, false );
 
-  struct timespec now;
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Inputting\n", now.tv_sec, now.tv_nsec );
-
   auto wasm_content = get_wasm_input( &client, input_bucket, file_name );
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Starting real compute\n", now.tv_sec, now.tv_nsec);
+  }
 
   auto stream_finish_callback = bind( write_c_output, &client, output_bucket, placeholders::_1, placeholders::_2 );
 
   auto [h_header, h_impl_header, errors]
     = wasm_to_c( wasm_content.data(), wasm_content.length(), stream_finish_callback );
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld Outputting\n", now.tv_sec, now.tv_nsec);
+  }
 
   if ( errors ) {
     printf("{ \"msg\": \"Error: wasm2c\", \"error\": %s }", errors->c_str()  );
@@ -76,8 +83,11 @@ void do_wasm_to_c(string input_bucket, string file_name, string output_bucket,
   unique_lock lk(s3_context.mutex);
   s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
 
-  clock_gettime( CLOCK_REALTIME, &now );
-  printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec );
+  if (logging) {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    printf("%ld.%.9ld End\n", now.tv_sec, now.tv_nsec);
+  }
 
   printf("{ \"output_number\": %zu }", generated_files );
 }
@@ -89,10 +99,11 @@ int main( int argc, char* argv[] )
   auto input_file = args["input_file"].get<string>();
   auto output_bucket = args["output_bucket"].get<string>();
   auto minio_url = args["minio_url"].get<string>();
+  auto logging = args.value("logging", false);
 
   Aws::SDKOptions options;
   Aws::InitAPI( options );
-  { do_wasm_to_c(input_bucket, input_file, output_bucket, minio_url); }
+  { do_wasm_to_c(input_bucket, input_file, output_bucket, minio_url, logging); }
   Aws::ShutdownAPI( options );
   return 0;
 }
