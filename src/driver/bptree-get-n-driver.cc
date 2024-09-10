@@ -73,7 +73,7 @@ void do_bptree_get_n(string input_bucket, string tree_root, string minio_url, in
     if ( isleaf ) {
       if ( idx != 0 and real_keys[idx - 1] == key ) {
         for ( int i = idx; i < data.size() / 32 - 1; i++ ) {
-          results += get_fix_object( &client, input_bucket, get_entry( data, idx ) );
+          results += get_fix_object( &client, input_bucket, get_entry( data, i ) );
           results.push_back( '\n' );
         }
 
