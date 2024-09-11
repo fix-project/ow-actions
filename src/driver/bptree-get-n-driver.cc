@@ -15,17 +15,6 @@ using json = nlohmann::json;
 
 string get_fix_object( Aws::S3::S3Client* client, string input_bucket, string handle ) {
   auto raw = base16::decode( handle );
-  if ( ( ((unsigned char)raw[30]) | 0b11111000 ) == 0b11111000 ) {
-    size_t size = ((unsigned char)raw[30]) >> 3;
-    auto result = string( reinterpret_cast<const char*>( &raw ), size );
-    std::memcpy( result.data(), &raw[0], size );
-    return result;
-  }
-
-  if ( handle.substr( 0, 48 ) == "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7" ) {
-    return "";
-  }
-
   return get_object( client, input_bucket, handle.substr( 0, 48 ) );
 }
 
