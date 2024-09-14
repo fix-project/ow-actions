@@ -61,16 +61,36 @@ void do_bptree_get_n(string input_bucket, string tree_root, string minio_url, in
 
     if ( isleaf ) {
       if ( idx != 0 and real_keys[idx - 1] == key ) {
+        int filled = 0;
         for ( int i = idx; i < data.size() / 32 - 1; i++ ) {
-          results += get_fix_object( &client, input_bucket, get_entry( data, i ) );
-          results.push_back( '\n' );
+          auto entry =
+              get_fix_object(&client, input_bucket, get_entry(data, i));
+          if (entry.size() > 0) {
+            results += entry;
+            results.push_back('\n');
+            filled++;
+            if (filled == n) {
+              break;
+            }
+          }
         }
 
-        for ( int i = 1; i < n; i++ ) {
-          data = get_fix_object( &client, input_bucket, get_entry( data, data.size() / 32 - 1 ) );
-          for ( int j = 1; j < data.size() / 32 - 1; j++ ) {
-            results += get_fix_object( &client, input_bucket, get_entry( data, j ) );
-            results.push_back( '\n' );
+        if (filled < n) {
+          while (true) {
+            data = get_fix_object(&client, input_bucket,
+                                  get_entry(data, data.size() / 32 - 1));
+            for (int j = 1; j < data.size() / 32 - 1; j++) {
+              auto entry =
+                  get_fix_object(&client, input_bucket, get_entry(data, j));
+              if (entry.size() > 0) {
+                results += entry;
+                results.push_back('\n');
+                filled++;
+                if (filled == n) {
+                  break;
+                }
+              }
+            }
           }
         }
       } else {
