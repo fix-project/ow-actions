@@ -13,8 +13,13 @@
 using namespace std;
 using json = nlohmann::json;
 
+async_context s3_context;
+
+string entry_to_file( string handle ) {
+  return handle.substr( 0, 48 );
+}
+
 string get_fix_object( Aws::S3::S3Client* client, string input_bucket, string handle ) {
-  auto raw = base16::decode( handle );
   return get_object( client, input_bucket, handle.substr( 0, 48 ) );
 }
 
@@ -61,35 +66,46 @@ void do_bptree_get_n(string input_bucket, string tree_root, string minio_url, in
 
     if ( isleaf ) {
       if ( idx != 0 and real_keys[idx - 1] == key ) {
-        int filled = 0;
+        if ( n == 1 ) {
+          results += get_fix_object(&client, input_bucket, get_entry(data,idx));
+          results.push_back('\n');
+          put_object(&client, output_bucket, output_file, results );
+          printf( "{ \"msg\": \"Done\" }" );
+          return;
+        }
+
+        int leaf_node_size = data.size() / 32;
+        int estimate_num_nodes = n / ( ( leaf_node_size - 2 ) / 2 );
+        vector<string> batch;
+
         for ( int i = idx; i < data.size() / 32 - 1; i++ ) {
-          auto entry =
-              get_fix_object(&client, input_bucket, get_entry(data, i));
-          if (entry.size() > 0) {
-            results += entry;
-            results.push_back('\n');
-            filled++;
-            if (filled == n) {
-              break;
-            }
+          batch.push_back( entry_to_file( get_entry( data, i ) ) );
+        }
+
+        for ( int i = 1; i < estimate_num_nodes; i++ ) {
+          data = get_fix_object( &client, input_bucket, get_entry( data, leaf_node_size - 1 ) );
+          for ( int j = 1; j < data.size() / 32 - 1; j++ ) {
+            batch.push_back( entry_to_file( get_entry( data, j ) ) );
           }
         }
 
-        if (filled < n) {
-          while (true) {
-            data = get_fix_object(&client, input_bucket,
-                                  get_entry(data, data.size() / 32 - 1));
-            for (int j = 1; j < data.size() / 32 - 1; j++) {
-              auto entry =
-                  get_fix_object(&client, input_bucket, get_entry(data, j));
-              if (entry.size() > 0) {
-                results += entry;
-                results.push_back('\n');
-                filled++;
-                if (filled == n) {
-                  break;
-                }
-              }
+        vector<string> batch_buffer;
+        batch_buffer.resize( batch.size() );
+        for (size_t i = 0; i <= batch.size(); i++) {
+          get_object_async(&s3_context, &batch[i], &client, input_bucket,
+              batch[i]);
+        }
+        unique_lock lk(s3_context.mutex);
+        s3_context.cv.wait(lk, [&] { return s3_context.remaining_jobs == 0; });
+
+        int filled = 0;
+        for ( auto d : batch ) {
+          if ( d.size() > 0 ) {
+            results += d;
+            results.push_back('\n');
+            filled++;
+            if ( filled == n ) {
+              break;
             }
           }
         }
