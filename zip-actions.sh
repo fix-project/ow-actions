@@ -25,3 +25,7 @@ printf "@ count-words-minio\n@=exec\n" | zipnote -w count-words.zip
 rm merge-counts.zip
 zip merge-counts.zip ../docker-build/src/driver/merge-counts-minio -j 
 printf "@ merge-counts-minio\n@=exec\n" | zipnote -w merge-counts.zip
+
+rm add.zip
+zip add.zip ../docker-build/src/driver/add -j 
+printf "@ add\n@=exec\n" | zipnote -w add.zip

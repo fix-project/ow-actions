@@ -26,6 +26,10 @@ add_executable(merge-counts-minio "merge-counts-driver.cc")
 target_link_libraries(merge-counts-minio ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(merge-counts-minio -static-libgcc -static-libstdc++)
 
+add_executable(add "add-driver.cc")
+target_link_libraries(add ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(add -static-libgcc -static-libstdc++)
+
 add_executable(bptree-get-minio "bptree-get-driver.cc")
 target_link_libraries(bptree-get-minio ${CURL_LIBRARIES})
 target_link_libraries(bptree-get-minio ${AWSSDK_LINK_LIBRARIES})
