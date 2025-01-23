@@ -10,6 +10,10 @@ rm bptree-get-n.zip
 zip bptree-get-n.zip ../docker-build/src/driver/bptree-get-n-minio -j
 printf "@ bptree-get-n-minio\n@=exec\n" | zipnote -w bptree-get-n.zip
 
+rm bptree-get-string-key.zip
+zip bptree-get-string-key.zip ../docker-build/src/driver/bptree-get-string-key-driver -j
+printf "@ bptree-get-string-key-driver\n@=exec\n" | zipnote -w bptree-get-string-key-driver.zip
+
 rm wasm2c.zip
 zip wasm2c.zip ../docker-build/src/driver/wasm-to-c-minio -j 
 printf "@ wasm-to-c-minio\n@=exec\n" | zipnote -w wasm2c.zip

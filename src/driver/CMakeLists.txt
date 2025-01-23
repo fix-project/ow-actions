@@ -39,3 +39,8 @@ add_executable(bptree-get-n-minio "bptree-get-n-driver.cc")
 target_link_libraries(bptree-get-n-minio ${CURL_LIBRARIES})
 target_link_libraries(bptree-get-n-minio ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(bptree-get-n-minio -static-libgcc -static-libstdc++)
+
+add_executable(bptree-get-string-key-driver "bptree-get-string-key-driver.cc")
+target_link_libraries(bptree-get-string-key-driver ${CURL_LIBRARIES})
+target_link_libraries(bptree-get-string-key-driver ${AWSSDK_LINK_LIBRARIES})
+target_link_libraries(bptree-get-string-key-driver -static-libgcc -static-libstdc++)
