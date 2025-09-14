@@ -33,3 +33,18 @@ printf "@ merge-counts-minio\n@=exec\n" | zipnote -w merge-counts.zip
 rm add.zip
 zip add.zip ../docker-build/src/driver/add -j 
 printf "@ add\n@=exec\n" | zipnote -w add.zip
+
+pushd compilepoll
+npm install
+zip -r compilepoll.zip *
+popd
+
+pushd lwvirt 
+npm install
+zip -r lwvirt.zip *
+popd
+
+pushd mapreduce
+npm install
+zip -r mapreduce.zip *
+popd

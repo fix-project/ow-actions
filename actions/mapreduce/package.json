@@ -1,0 +1,8 @@
+{
+  "name": "newcompilepoll",
+  "main": "index.js",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "minio": "^8.0.0"
+  }
+}
